@@ -17,12 +17,16 @@ const { generateCard } = useShareCard()
 
 // 加载数据
 onMounted(() => {
+  // 加载基础数据
   diaries.value = diaryData || []
   
-  // 从localStorage读取暗黑模式设置
-  const savedDarkMode = localStorage.getItem('darkMode')
-  if (savedDarkMode !== null) {
-    darkMode.value = savedDarkMode === 'true'
+  // 从localStorage读取草稿数据
+  const savedDrafts = localStorage.getItem('diaryDrafts')
+  if (savedDrafts) {
+    const drafts = JSON.parse(savedDrafts)
+    // 合并草稿和基础数据（草稿优先）
+    const draftIds = new Set(drafts.map(d => d.id))
+    diaries.value = [...drafts, ...diaries.value.filter(d => !draftIds.has(d.id))]
   }
   
   // 从localStorage读取图片数据

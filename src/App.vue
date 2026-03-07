@@ -28,6 +28,7 @@ const toggleDarkMode = () => {
       <div class="nav-links">
         <router-link to="/" class="nav-link">首页</router-link>
         <router-link to="/stats" class="nav-link">统计</router-link>
+        <router-link to="/write" class="nav-link write-link">✍️ 写日记</router-link>
         <button @click="toggleDarkMode" class="nav-btn">
           {{ darkMode ? '☀️' : '🌙' }}
         </button>
@@ -115,6 +116,13 @@ const toggleDarkMode = () => {
 .dark-mode .nav-link:hover,
 .dark-mode .nav-link.router-link-active {
   color: #a78bfa;
+}
+
+.write-link {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white !important;
+  padding: 8px 16px;
+  border-radius: 10px;
 }
 
 .nav-btn {

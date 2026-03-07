@@ -5,12 +5,14 @@ import './style.css'
 
 import Home from './views/Home.vue'
 import Stats from './views/Stats.vue'
+import Write from './views/Write.vue'
 
 const router = createRouter({
   history: createWebHistory('/lobster-diary'),
   routes: [
     { path: '/', component: Home },
-    { path: '/stats', component: Stats }
+    { path: '/stats', component: Stats },
+    { path: '/write', component: Write }
   ]
 })
 
