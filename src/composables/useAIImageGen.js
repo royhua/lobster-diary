@@ -7,7 +7,7 @@ const AI_IMAGE_APIS = {
   zhipu: {
     name: '智谱AI CogView',
     endpoint: 'https://open.bigmodel.cn/api/paas/v4/images/generations',
-    apiKey: '', // 需要申请：https://open.bigmodel.cn/
+    apiKey: '7c77f0cb37d141ee86b75a18806a7087.tqLxkXI8KMKcTr7m', // 已配置
     free: true,
     freeQuota: '会员免费'
   },
