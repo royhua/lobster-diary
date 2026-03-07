@@ -50,15 +50,15 @@ const AI_IMAGE_APIS = {
 
 // ============ 风格提示词 ============
 const STYLE_PROMPTS = {
-  cartoon: 'cartoon style, cute, colorful, vibrant, anime inspired, kawaii',
+  cartoon: 'cute cartoon style, colorful, vibrant, kawaii, cheerful',
   anime: 'anime style, manga, cel shading, vibrant colors, Japanese animation',
-  watercolor: 'watercolor painting, soft colors, artistic, dreamy, flowing',
-  oil: 'oil painting, classical art, rich textures, masterpiece',
-  sketch: 'pencil sketch, hand drawn, artistic, detailed lines',
-  pixel: 'pixel art, 8-bit, retro game style, cute pixels',
-  minimal: 'minimalist, simple, clean lines, modern design',
-  fantasy: 'fantasy art, magical, ethereal, mystical atmosphere',
-  realistic: 'realistic, photorealistic, high detail, professional photography'
+  watercolor: 'soft watercolor painting, dreamy, artistic, flowing colors',
+  oil: 'classical oil painting, rich textures, masterpiece, museum quality',
+  sketch: 'detailed pencil sketch, hand drawn, artistic, fine lines',
+  pixel: 'pixel art, 8-bit, retro game style, cute pixels, nostalgic',
+  minimal: 'minimalist, simple, clean lines, modern design, elegant',
+  fantasy: 'fantasy art, magical, ethereal, mystical atmosphere, enchanting',
+  realistic: 'photorealistic, high detail, professional photography, 4k'
 }
 
 // ============ 中文提示词增强 ============
@@ -75,15 +75,14 @@ const PROMPT_ENHANCERS = {
 
 // ============ 主函数：生成AI图片 ============
 export async function generateAIImage(content, style = 'cartoon') {
-  // 1. 提取关键词
-  const keywords = extractKeywordsFromContent(content)
+  // 1. 直接使用日记内容作为提示词
+  const diaryContent = content.trim()
   
-  // 2. 构建提示词
+  // 2. 构建风格提示词
   const stylePrompt = STYLE_PROMPTS[style] || STYLE_PROMPTS.cartoon
-  const moodPrompt = enhanceMoodKeywords(content)
   
-  // 3. 组合最终提示词
-  const finalPrompt = `${keywords}, ${stylePrompt}, ${moodPrompt}, high quality, detailed`
+  // 3. 组合最终提示词 - 直接使用日记内容
+  const finalPrompt = `A ${stylePrompt} illustration depicting: ${diaryContent}. High quality, detailed, beautiful composition.`
   
   console.log('🎨 AI生图提示词:', finalPrompt)
   
@@ -111,7 +110,8 @@ export async function generateAIImage(content, style = 'cartoon') {
   return {
     prompt: finalPrompt,
     image: image,
-    style: style
+    style: style,
+    diaryContent: diaryContent
   }
 }
 
