@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAI } from '../composables/useAI.js'
 import TemplatePicker from '../components/TemplatePicker.vue'
+import AIImageGenerator from '../components/AIImageGenerator.vue'
 
 const router = useRouter()
 const { getRandomPrompt, getRandomQuote, extractTags, analyzeMood } = useAI()
@@ -14,6 +15,8 @@ const prompt = ref('')
 const quote = ref('')
 const saving = ref(false)
 const showTemplates = ref(false)
+const showAIImages = ref(false)
+const selectedImage = ref(null)
 
 onMounted(() => {
   prompt.value = getRandomPrompt()
