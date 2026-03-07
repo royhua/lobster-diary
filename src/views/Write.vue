@@ -61,6 +61,7 @@ const saveDiary = async () => {
     content: content.value,
     tags: suggestedTags.value,
     mood: mood.value?.mood || 'neutral',
+    image: selectedImage.value,  // 保存AI配图
     createdAt: new Date().toISOString()
   }
   
@@ -120,6 +121,12 @@ const selectAIImage = (imageUrl) => {
     
     <!-- 编辑区 -->
     <div class="editor-section">
+      <!-- 选择的AI配图预览 -->
+      <div v-if="selectedImage" class="selected-image-preview">
+        <img :src="selectedImage" alt="AI配图" />
+        <button class="remove-image-btn" @click="selectedImage = null">✕</button>
+      </div>
+      
       <textarea 
         v-model="content"
         class="editor"
@@ -275,6 +282,41 @@ const selectAIImage = (imageUrl) => {
   padding: 20px;
   margin-bottom: 20px;
   box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+}
+
+.selected-image-preview {
+  position: relative;
+  margin-bottom: 15px;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.selected-image-preview img {
+  width: 100%;
+  max-height: 300px;
+  object-fit: cover;
+  border-radius: 12px;
+}
+
+.remove-image-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.remove-image-btn:hover {
+  background: rgba(239, 68, 68, 0.9);
 }
 
 .editor {
