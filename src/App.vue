@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import BottomNav from './components/BottomNav.vue'
+import VersionTag from './components/VersionTag.vue'
 
 const router = useRouter()
 const darkMode = ref(false)
@@ -86,6 +87,9 @@ const toggleDarkMode = () => {
     
     <!-- 移动端底部导航 -->
     <BottomNav v-if="isMobile" />
+    
+    <!-- 版本号 -->
+    <VersionTag />
   </div>
 </template>
 

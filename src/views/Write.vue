@@ -87,6 +87,12 @@ const useTemplate = (templateContent) => {
   showTemplates.value = false
   handleInput()
 }
+
+// AI配图
+const selectAIImage = (imageUrl) => {
+  selectedImage.value = imageUrl
+  showAIImages.value = false
+}
 </script>
 
 <template>
@@ -156,6 +162,9 @@ const useTemplate = (templateContent) => {
       <button class="quick-btn" @click="showTemplates = true">
         📋 使用模板
       </button>
+      <button class="quick-btn" @click="showAIImages = true" :disabled="content.length < 20">
+        🎨 AI配图
+      </button>
       <button class="quick-btn" @click="content += '\n\n今日目标完成：'">
         🎯 目标回顾
       </button>
@@ -172,6 +181,16 @@ const useTemplate = (templateContent) => {
       <TemplatePicker 
         @select="useTemplate" 
         @close="showTemplates = false"
+        @click.stop
+      />
+    </div>
+    
+    <!-- AI配图选择器 -->
+    <div v-if="showAIImages" class="template-overlay" @click="showAIImages = false">
+      <AIImageGenerator 
+        :content="content"
+        @select="selectAIImage"
+        @close="showAIImages = false"
         @click.stop
       />
     </div>
