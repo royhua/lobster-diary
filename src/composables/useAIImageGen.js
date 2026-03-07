@@ -274,24 +274,114 @@ function extractKeywordsFromContent(content) {
   const keywords = []
   const text = content.toLowerCase()
   
-  // 提取中文关键词
-  const chineseKeywords = [
-    '天空', '大海', '森林', '城市', '日落', '星空',
-    '花朵', '蝴蝶', '猫咪', '小狗', '咖啡', '书本'
-  ]
+  // 扩展关键词映射
+  const keywordMap = {
+    // 情绪
+    '开心': 'happy, joyful, sunshine, smile',
+    '快乐': 'happy, joy, cheerful, bright',
+    '幸福': 'happiness, warm, love, family',
+    '悲伤': 'sad, melancholic, rain, lonely',
+    '难过': 'sad, tears, rain, blue',
+    '焦虑': 'anxious, stress, worry, tense',
+    '平静': 'peaceful, calm, serene, quiet',
+    '兴奋': 'excited, energetic, dynamic, vibrant',
+    '生气': 'angry, frustration, storm, dark',
+    '感动': 'touched, emotional, heartwarming',
+    
+    // 活动
+    '工作': 'office, work, business, desk, computer',
+    '学习': 'study, reading, book, library, education',
+    '运动': 'sport, running, fitness, exercise, gym',
+    '跑步': 'running, jogging, outdoor, morning',
+    '健身': 'fitness, gym, workout, strength',
+    '旅行': 'travel, adventure, journey, explore',
+    '旅游': 'tourism, sightseeing, vacation',
+    '购物': 'shopping, store, market, buying',
+    '做饭': 'cooking, kitchen, food, chef',
+    '美食': 'delicious food, gourmet, cooking',
+    '咖啡': 'coffee, cafe, drink, morning',
+    '阅读': 'reading, book, library, peaceful',
+    '电影': 'movie, cinema, film, theater',
+    '音乐': 'music, guitar, piano, concert',
+    '游戏': 'game, playing, fun, entertainment',
+    '睡觉': 'sleep, bedroom, night, dream',
+    '休息': 'rest, relaxing, couch, comfortable',
+    
+    // 场景
+    '家': 'home, cozy, interior, living room',
+    '公司': 'office, building, corporate',
+    '学校': 'school, classroom, campus',
+    '公园': 'park, nature, trees, walking',
+    '海边': 'beach, ocean, waves, sand',
+    '山上': 'mountain, hiking, nature, peak',
+    '城市': 'city, urban, street, buildings',
+    '农村': 'countryside, farm, fields, rural',
+    
+    // 天气
+    '晴天': 'sunny, blue sky, sunshine, bright',
+    '雨天': 'rain, rainy, umbrella, wet',
+    '阴天': 'cloudy, overcast, gray',
+    '雪': 'snow, winter, cold, white',
+    '风': 'windy, breeze, storm',
+    '热': 'hot, summer, sun, warm',
+    '冷': 'cold, winter, ice, freeze',
+    
+    // 时间
+    '早晨': 'morning, sunrise, dawn, breakfast',
+    '上午': 'morning, daylight, working',
+    '中午': 'noon, lunch, midday',
+    '下午': 'afternoon, tea, relaxing',
+    '晚上': 'evening, sunset, dinner',
+    '夜晚': 'night, stars, moon, dark',
+    '深夜': 'midnight, late night, quiet',
+    
+    // 人物
+    '朋友': 'friends, friendship, together',
+    '家人': 'family, parents, home',
+    '同事': 'colleague, team, work',
+    '孩子': 'children, kids, playing',
+    '宠物': 'pet, cat, dog, cute',
+    
+    // 节日
+    '生日': 'birthday, cake, celebration, party',
+    '新年': 'new year, fireworks, celebration',
+    '春节': 'chinese new year, red, lantern',
+    '圣诞': 'christmas, tree, gifts, winter',
+    
+    // 物品
+    '花': 'flower, bloom, garden, beautiful',
+    '猫': 'cat, kitten, cute, pet',
+    '狗': 'dog, puppy, pet, loyal',
+    '车': 'car, driving, road',
+    '书': 'book, reading, knowledge',
+    '手机': 'phone, smartphone, technology',
+    
+    // 感受
+    '累': 'tired, exhausted, rest',
+    '饿': 'hungry, food, eating',
+    '困': 'sleepy, tired, bed',
+    '忙': 'busy, work, rush'
+  }
   
-  chineseKeywords.forEach(kw => {
-    if (text.includes(kw)) {
-      keywords.push(kw)
+  // 匹配关键词
+  Object.entries(keywordMap).forEach(([cn, en]) => {
+    if (text.includes(cn)) {
+      keywords.push(en)
     }
   })
   
-  // 如果没有关键词，使用通用描述
+  // 如果没有匹配到，尝试提取通用描述
   if (keywords.length === 0) {
-    keywords.push('beautiful scene', 'peaceful atmosphere')
+    // 检测是否包含中文
+    if (/[\u4e00-\u9fa5]/.test(text)) {
+      keywords.push('daily life scene, peaceful atmosphere')
+    } else {
+      keywords.push('beautiful scene, peaceful atmosphere')
+    }
   }
   
-  return keywords.join(', ')
+  // 最多返回3个关键词
+  return keywords.slice(0, 3).join(', ')
 }
 
 function enhanceMoodKeywords(content) {
