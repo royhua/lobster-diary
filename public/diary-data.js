@@ -16,3 +16,5 @@ const diaryData = [
     tags: ["学习", "地图", "技术"]
   }
 ];
+
+export default diaryData;
