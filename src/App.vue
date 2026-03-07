@@ -1,23 +1,35 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import {
+  ElContainer,
+  ElHeader,
+  ElMain,
+  ElFooter,
+  ElMenu,
+  ElMenuItem,
+  ElButton,
+  ElSwitch,
+  ElIcon,
+  ElDrawer,
+  ElRow,
+  ElCol
+} from 'element-plus'
+import { Moon, Sunny, EditPen, House, DataLine } from '@element-plus/icons-vue'
 import BottomNav from './components/BottomNav.vue'
 import VersionTag from './components/VersionTag.vue'
 
 const router = useRouter()
 const darkMode = ref(false)
-const scrolled = ref(false)
 const isMobile = ref(false)
+const showDrawer = ref(false)
+const activeIndex = ref('/')
 
 onMounted(() => {
   const savedDarkMode = localStorage.getItem('darkMode')
   if (savedDarkMode !== null) {
     darkMode.value = savedDarkMode === 'true'
   }
-  
-  window.addEventListener('scroll', () => {
-    scrolled.value = window.scrollY > 50
-  })
   
   isMobile.value = window.innerWidth < 768
   window.addEventListener('resize', () => {
@@ -28,165 +40,144 @@ onMounted(() => {
 const toggleDarkMode = () => {
   darkMode.value = !darkMode.value
   localStorage.setItem('darkMode', darkMode.value)
+  document.documentElement.classList.toggle('dark', darkMode.value)
+}
+
+const handleSelect = (key) => {
+  activeIndex.value = key
+  router.push(key)
+  showDrawer.value = false
 }
 </script>
 
 <template>
-  <div class="app-container" :class="{ 'dark-mode': darkMode }">
-    <!-- 毛玻璃导航栏 -->
-    <nav class="nav-bar" :class="{ 'scrolled': scrolled }">
-      <router-link to="/" class="nav-brand">
+  <el-container :class="{ 'dark-mode': darkMode }" class="app-container">
+    <!-- 桌面端导航 -->
+    <el-header v-if="!isMobile" class="nav-header">
+      <div class="nav-brand">
         <span class="brand-icon">🦞</span>
         <span class="brand-text">龙虾日记</span>
-      </router-link>
-      <div class="nav-links">
-        <router-link to="/" class="nav-link">
-          <span class="link-icon">🏠</span>
-          <span class="link-text">首页</span>
-        </router-link>
-        <router-link to="/stats" class="nav-link">
-          <span class="link-icon">📊</span>
-          <span class="link-text">统计</span>
-        </router-link>
-        <router-link to="/write" class="nav-link write-btn">
-          <span class="link-icon">✍️</span>
-          <span class="link-text">写日记</span>
-        </router-link>
-        <button @click="toggleDarkMode" class="theme-toggle">
-          <span class="theme-icon">{{ darkMode ? '☀️' : '🌙' }}</span>
-        </button>
       </div>
-    </nav>
+      
+      <el-menu
+        :default-active="activeIndex"
+        mode="horizontal"
+        :ellipsis="false"
+        @select="handleSelect"
+        class="nav-menu"
+      >
+        <el-menu-item index="/">
+          <el-icon><House /></el-icon>
+          <span>首页</span>
+        </el-menu-item>
+        <el-menu-item index="/stats">
+          <el-icon><DataLine /></el-icon>
+          <span>统计</span>
+        </el-menu-item>
+        <el-menu-item index="/write" class="write-item">
+          <el-icon><EditPen /></el-icon>
+          <span>写日记</span>
+        </el-menu-item>
+      </el-menu>
+      
+      <div class="nav-actions">
+        <el-switch
+          v-model="darkMode"
+          :active-icon="Moon"
+          :inactive-icon="Sunny"
+          @change="toggleDarkMode"
+        />
+      </div>
+    </el-header>
+    
+    <!-- 移动端导航 -->
+    <el-header v-else class="mobile-header">
+      <div class="mobile-brand">
+        <span class="brand-icon">🦞</span>
+      </div>
+      <el-button 
+        :icon="darkMode ? Sunny : Moon" 
+        circle 
+        @click="toggleDarkMode"
+      />
+    </el-header>
     
     <!-- 主内容 -->
-    <main class="main-content">
+    <el-main class="main-content">
       <router-view v-slot="{ Component }">
         <transition name="fade" mode="out-in">
           <component :is="Component" />
         </transition>
       </router-view>
-    </main>
-    
-    <!-- 页脚 -->
-    <footer class="footer" v-if="!isMobile">
-      <div class="footer-content">
-        <div class="footer-brand">
-          <span class="footer-icon">🦞</span>
-          <span>龙虾日记</span>
-        </div>
-        <p class="footer-desc">记录每一天的精彩生活</p>
-        <div class="footer-links">
-          <router-link to="/">首页</router-link>
-          <span class="divider">·</span>
-          <router-link to="/stats">数据统计</router-link>
-          <span class="divider">·</span>
-          <router-link to="/write">写日记</router-link>
-        </div>
-      </div>
-    </footer>
+    </el-main>
     
     <!-- 移动端底部导航 -->
     <BottomNav v-if="isMobile" />
     
-    <!-- 版本号 -->
+    <!-- 版本标签 -->
     <VersionTag />
-  </div>
+    
+    <!-- 页脚 -->
+    <el-footer v-if="!isMobile" class="app-footer">
+      <div class="footer-content">
+        <p>🦞 龙虾日记 · 记录每一天的精彩</p>
+        <p class="footer-links">
+          <a href="https://github.com/royhua/lobster-diary" target="_blank">GitHub</a>
+          <span>·</span>
+          <a href="mailto:luoyihua@industics.com">联系作者</a>
+        </p>
+      </div>
+    </el-footer>
+  </el-container>
 </template>
 
 <style>
-/* ============ 全局样式 ============ */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap');
+/* Element Plus 暗黑模式 */
+@import 'element-plus/theme-chalk/dark/css-vars.css';
 
+/* 全局样式 */
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
-:root {
-  --primary: #6366f1;
-  --primary-light: #818cf8;
-  --primary-dark: #4f46e5;
-  --accent: #ec4899;
-  --success: #10b981;
-  --warning: #f59e0b;
-  --danger: #ef4444;
-  
-  --bg-light: #f8fafc;
-  --bg-card: #ffffff;
-  --text-primary: #1e293b;
-  --text-secondary: #64748b;
-  --text-muted: #94a3b8;
-  
-  --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
-  --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
-  --shadow-xl: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
-  
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 24px;
-  
-  --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
 body {
-  font-family: 'Inter', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
-  background: linear-gradient(135deg, #0f0f1e 0%, #1a1a2e 50%, #16213e 100%); background-attachment: fixed;
-  color: var(--text-primary);
-  line-height: 1.6;
-  -webkit-font-smoothing: antialiased;
-}
-
-/* 暗黑模式 */
-.dark-mode {
-  --bg-light: #0f172a;
-  --bg-card: #1e293b;
-  --text-primary: #f1f5f9;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
-}
-
-/* ============ 应用容器 ============ */
-.app-container {
-  min-height: 100vh;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
   background-attachment: fixed;
+  min-height: 100vh;
 }
 
-.dark-mode.app-container {
+.dark-mode body {
   background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4c1d95 100%);
 }
 
-/* ============ 导航栏 ============ */
-.nav-bar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 100;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 24px;
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  transition: var(--transition);
+.app-container {
+  min-height: 100vh;
+  background: transparent;
 }
 
-.nav-bar.scrolled {
-  background: rgba(255, 255, 255, 0.2);
-  box-shadow: var(--shadow-lg);
+/* 导航栏 */
+.nav-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 40px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  height: 64px;
+}
+
+.dark-mode .nav-header {
+  background: rgba(0, 0, 0, 0.3);
 }
 
 .nav-brand {
   display: flex;
   align-items: center;
-  gap: 10px;
-  text-decoration: none;
+  gap: 12px;
   color: white;
   font-weight: 700;
   font-size: 1.25rem;
@@ -194,143 +185,87 @@ body {
 
 .brand-icon {
   font-size: 1.8rem;
-  animation: wiggle 2s ease-in-out infinite;
 }
 
-@keyframes wiggle {
-  0%, 100% { transform: rotate(0deg); }
-  25% { transform: rotate(-10deg); }
-  75% { transform: rotate(10deg); }
+.nav-menu {
+  background: transparent !important;
+  border: none !important;
 }
 
-.brand-text {
-  background: linear-gradient(135deg, #fff 0%, rgba(255,255,255,0.8) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+.nav-menu .el-menu-item {
+  color: rgba(255, 255, 255, 0.8) !important;
+  border-bottom: none !important;
 }
 
-.nav-links {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.nav-link {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 10px 16px;
-  border-radius: var(--radius-md);
-  color: rgba(255, 255, 255, 0.9);
-  text-decoration: none;
-  font-weight: 500;
-  font-size: 0.95rem;
-  transition: var(--transition);
-}
-
-.nav-link:hover {
-  background: rgba(255, 255, 255, 0.15);
-  color: white;
-}
-
-.nav-link.router-link-active {
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
-}
-
-.write-btn {
-  background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+.nav-menu .el-menu-item:hover {
   color: white !important;
-  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
+  background: rgba(255, 255, 255, 0.1) !important;
 }
 
-.write-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
+.nav-menu .el-menu-item.is-active {
+  color: white !important;
+  background: rgba(255, 255, 255, 0.2) !important;
+  border-bottom: 2px solid white !important;
 }
 
-.theme-toggle {
-  width: 44px;
-  height: 44px;
-  border-radius: var(--radius-md);
+.write-item {
+  background: linear-gradient(135deg, #6366f1, #8b5cf6) !important;
+  border-radius: 8px;
+  margin-left: 10px;
+}
+
+.write-item:hover {
+  background: linear-gradient(135deg, #4f46e5, #7c3aed) !important;
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+}
+
+/* 移动端导航 */
+.mobile-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
   background: rgba(255, 255, 255, 0.1);
-  border: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: var(--transition);
+  backdrop-filter: blur(20px);
+  height: 56px;
 }
 
-.theme-toggle:hover {
-  background: rgba(255, 255, 255, 0.2);
-}
-
-.theme-icon {
-  font-size: 1.3rem;
-}
-
-/* ============ 主内容 ============ */
-.main-content {
-  padding-top: 80px;
-  min-height: calc(100vh - 200px);
-}
-
-/* ============ 页脚 ============ */
-.footer {
-  padding: 60px 20px 40px;
-  text-align: center;
-  color: rgba(255, 255, 255, 0.8);
-}
-
-.footer-content {
-  max-width: 400px;
-  margin: 0 auto;
-}
-
-.footer-brand {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  font-size: 1.2rem;
-  font-weight: 600;
-  margin-bottom: 8px;
-}
-
-.footer-icon {
+.mobile-brand .brand-icon {
   font-size: 1.5rem;
 }
 
-.footer-desc {
-  font-size: 0.95rem;
-  opacity: 0.8;
-  margin-bottom: 20px;
+/* 主内容 */
+.main-content {
+  padding: 20px;
+  min-height: calc(100vh - 200px);
 }
 
-.footer-links {
-  display: flex;
-  justify-content: center;
-  gap: 8px;
-  font-size: 0.9rem;
+/* 页脚 */
+.app-footer {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.8);
+  padding: 40px 20px;
+}
+
+.footer-content p {
+  margin-bottom: 8px;
 }
 
 .footer-links a {
   color: rgba(255, 255, 255, 0.7);
   text-decoration: none;
-  transition: var(--transition);
+  margin: 0 8px;
 }
 
 .footer-links a:hover {
   color: white;
 }
 
-.divider {
-  opacity: 0.5;
-}
-
-/* ============ 页面过渡动画 ============ */
+/* 过渡动画 */
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.2s ease;
@@ -339,28 +274,5 @@ body {
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
-}
-
-/* ============ 响应式 ============ */
-@media (max-width: 768px) {
-  .nav-bar {
-    padding: 12px 16px;
-  }
-  
-  .brand-text {
-    display: none;
-  }
-  
-  .link-text {
-    display: none;
-  }
-  
-  .nav-link {
-    padding: 10px 12px;
-  }
-  
-  .write-btn .link-text {
-    display: inline;
-  }
 }
 </style>
