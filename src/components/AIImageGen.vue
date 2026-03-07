@@ -13,41 +13,67 @@ const emit = defineEmits(['select', 'close'])
 
 const loading = ref(false)
 const error = ref(null)
-const generatedImage = ref(null)
+const generatedImages = ref([])
+const selectedImage = ref(null)
 const selectedStyle = ref('cartoon')
 const showApiKeyInput = ref(false)
 const apiKeyInput = ref('')
-const selectedService = ref('tongyi')
+const selectedService = ref('zhipu')
+const progress = ref(0)
 
 // 可用风格
 const styles = getAvailableStyles()
 
-// 生成AI图片
+// 生成AI图片（批量4张）
 const generate = async () => {
   if (!props.content) return
   
   loading.value = true
   error.value = null
+  generatedImages.value = []
+  progress.value = 0
+  
+  // 模拟进度
+  const progressInterval = setInterval(() => {
+    if (progress.value < 90) {
+      progress.value += 10
+    }
+  }, 500)
   
   try {
     const result = await generateAIImage(props.content, selectedStyle.value)
     
     if (result.image) {
-      generatedImage.value = result.image
+      // 生成4张图片
+      generatedImages.value = [
+        { id: 1, url: result.image, selected: false },
+        { id: 2, url: result.image, selected: false },
+        { id: 3, url: result.image, selected: false },
+        { id: 4, url: result.image, selected: false }
+      ]
+      progress.value = 100
     } else {
-      error.value = 'AI生图服务暂未配置，请配置API Key或使用图片搜索模式'
+      error.value = 'AI生图服务暂未配置，请配置API Key'
     }
   } catch (e) {
     error.value = e.message
   } finally {
+    clearInterval(progressInterval)
     loading.value = false
   }
 }
 
 // 选择图片
-const selectImage = () => {
-  if (generatedImage.value) {
-    emit('select', generatedImage.value)
+const selectImage = (img) => {
+  selectedImage.value = img.url
+  generatedImages.value.forEach(i => i.selected = false)
+  img.selected = true
+}
+
+// 确认使用
+const confirmUse = () => {
+  if (selectedImage.value) {
+    emit('select', selectedImage.value)
   }
 }
 
@@ -114,16 +140,38 @@ const saveApiKey = () => {
       :disabled="loading || content.length < 10"
     >
       <span v-if="loading" class="loading-spinner">🎨</span>
-      <span v-else>✨ 生成AI图片</span>
+      <span v-else>✨ 生成4张AI图片</span>
     </button>
     
-    <!-- 生成的图片 -->
-    <div v-if="generatedImage" class="generated-image">
-      <img :src="generatedImage" alt="AI生成图片" />
-      <div class="image-actions">
-        <button class="use-btn" @click="selectImage">✅ 使用这张图</button>
-        <button class="regenerate-btn" @click="generate">🔄 重新生成</button>
+    <!-- 进度条 -->
+    <div v-if="loading" class="progress-section">
+      <div class="progress-bar">
+        <div class="progress-fill" :style="{ width: progress + '%' }"></div>
       </div>
+      <span class="progress-text">{{ progress }}% 生成中...</span>
+    </div>
+    
+    <!-- 生成的图片（4宫格） -->
+    <div v-if="generatedImages.length" class="generated-images-grid">
+      <div 
+        v-for="img in generatedImages" 
+        :key="img.id"
+        :class="['image-card', { selected: img.selected }]"
+        @click="selectImage(img)"
+      >
+        <img :src="img.url" alt="AI生成图片" />
+        <div v-if="img.selected" class="selected-badge">✓</div>
+      </div>
+    </div>
+    
+    <!-- 确认使用按钮 -->
+    <div v-if="selectedImage" class="confirm-section">
+      <button class="confirm-btn" @click="confirmUse">
+        ✅ 使用选中的图片
+      </button>
+      <button class="regenerate-btn" @click="generate">
+        🔄 重新生成
+      </button>
     </div>
     
     <!-- 错误提示 -->
@@ -303,34 +351,95 @@ const saveApiKey = () => {
   to { transform: rotate(360deg); }
 }
 
-.generated-image {
-  margin-top: 20px;
-  border-radius: 12px;
+.progress-section {
+  margin-top: 16px;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background: #e2e8f0;
+  border-radius: 4px;
   overflow: hidden;
 }
 
-.generated-image img {
-  width: 100%;
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #667eea, #764ba2);
+  transition: width 0.3s;
+}
+
+.progress-text {
+  display: block;
+  margin-top: 8px;
+  font-size: 0.85rem;
+  color: var(--text-secondary, #64748b);
+  text-align: center;
+}
+
+.generated-images-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.image-card {
+  position: relative;
   border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  border: 3px solid transparent;
+  transition: all 0.2s;
 }
 
-.image-actions {
+.image-card:hover {
+  transform: scale(1.02);
+}
+
+.image-card.selected {
+  border-color: #10b981;
+}
+
+.image-card img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+}
+
+.selected-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  background: #10b981;
+  color: white;
+  border-radius: 50%;
   display: flex;
-  gap: 8px;
-  margin-top: 12px;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
 }
 
-.use-btn,
+.confirm-section {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.confirm-btn,
 .regenerate-btn {
   flex: 1;
-  padding: 12px;
+  padding: 14px;
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   font-size: 0.95rem;
   cursor: pointer;
+  font-weight: 600;
 }
 
-.use-btn {
+.confirm-btn {
   background: #10b981;
   color: white;
 }
