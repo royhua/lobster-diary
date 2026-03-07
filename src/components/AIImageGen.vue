@@ -77,6 +77,11 @@ const confirmUse = () => {
   }
 }
 
+// 双击直接使用
+const doubleClickUse = (img) => {
+  emit('select', img.url)
+}
+
 // 配置API Key
 const saveApiKey = () => {
   if (apiKeyInput.value) {
@@ -158,9 +163,11 @@ const saveApiKey = () => {
         :key="img.id"
         :class="['image-card', { selected: img.selected }]"
         @click="selectImage(img)"
+        @dblclick="doubleClickUse(img)"
       >
         <img :src="img.url" alt="AI生成图片" />
         <div v-if="img.selected" class="selected-badge">✓</div>
+        <div class="image-hint">双击使用</div>
       </div>
     </div>
     
@@ -420,6 +427,24 @@ const saveApiKey = () => {
   align-items: center;
   justify-content: center;
   font-weight: bold;
+}
+
+.image-hint {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 4px 12px;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.image-card:hover .image-hint {
+  opacity: 1;
 }
 
 .confirm-section {
