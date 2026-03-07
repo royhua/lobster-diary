@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { useAI } from '../composables/useAI.js'
 import TemplatePicker from '../components/TemplatePicker.vue'
 import AIImageGenerator from '../components/AIImageGenerator.vue'
+import AIImageGen from '../components/AIImageGen.vue'
 
 const router = useRouter()
 const { getRandomPrompt, getRandomQuote, extractTags, analyzeMood } = useAI()
@@ -16,6 +17,7 @@ const quote = ref('')
 const saving = ref(false)
 const showTemplates = ref(false)
 const showAIImages = ref(false)
+const showAIImageGen = ref(false)
 const selectedImage = ref(null)
 
 onMounted(() => {
@@ -169,17 +171,17 @@ const selectAIImage = (imageUrl) => {
       <button class="quick-btn" @click="showTemplates = true">
         📋 使用模板
       </button>
+      <button class="quick-btn" @click="showAIImageGen = true">
+        🎨 AI生图
+      </button>
       <button class="quick-btn" @click="showAIImages = true" :disabled="content.length < 20">
-        🎨 AI配图
+        🖼️ 图片搜索
       </button>
       <button class="quick-btn" @click="content += '\n\n今日目标完成：'">
         🎯 目标回顾
       </button>
       <button class="quick-btn" @click="content += '\n\n明日计划：'">
         📅 明日计划
-      </button>
-      <button class="quick-btn" @click="content += '\n\n感恩的事：'">
-        🙏 感恩清单
       </button>
     </div>
     
@@ -192,12 +194,22 @@ const selectAIImage = (imageUrl) => {
       />
     </div>
     
-    <!-- AI配图选择器 -->
+    <!-- AI配图选择器（图片搜索） -->
     <div v-if="showAIImages" class="template-overlay" @click="showAIImages = false">
       <AIImageGenerator 
         :content="content"
         @select="selectAIImage"
         @close="showAIImages = false"
+        @click.stop
+      />
+    </div>
+    
+    <!-- AI生图（智谱AI） -->
+    <div v-if="showAIImageGen" class="template-overlay" @click="showAIImageGen = false">
+      <AIImageGen 
+        :content="content"
+        @select="selectAIImage"
+        @close="showAIImageGen = false"
         @click.stop
       />
     </div>
