@@ -3,6 +3,15 @@
 
 // ============ 配置 ============
 const AI_IMAGE_APIS = {
+  // 智谱AI CogView（推荐，免费额度）
+  zhipu: {
+    name: '智谱AI CogView',
+    endpoint: 'https://open.bigmodel.cn/api/paas/v4/images/generations',
+    apiKey: '', // 需要申请：https://open.bigmodel.cn/
+    free: true,
+    freeQuota: '会员免费'
+  },
+  
   // 通义万相（阿里云，免费额度）
   tongyi: {
     name: '通义万相',
@@ -81,8 +90,13 @@ export async function generateAIImage(content, style = 'cartoon') {
   // 4. 调用AI绘图API（按优先级尝试）
   let image = null
   
-  // 优先使用通义万相（免费）
-  image = await callTongyiAPI(finalPrompt)
+  // 优先使用智谱AI（会员免费）
+  image = await callZhipuAPI(finalPrompt)
+  
+  // 如果失败，尝试通义万相
+  if (!image) {
+    image = await callTongyiAPI(finalPrompt)
+  }
   
   // 如果失败，尝试 Stable Diffusion
   if (!image) {
@@ -98,6 +112,43 @@ export async function generateAIImage(content, style = 'cartoon') {
     prompt: finalPrompt,
     image: image,
     style: style
+  }
+}
+
+// ============ 智谱AI CogView API ============
+async function callZhipuAPI(prompt) {
+  const config = AI_IMAGE_APIS.zhipu
+  
+  if (!config.apiKey) {
+    console.log('⚠️ 智谱AI未配置API Key')
+    return null
+  }
+  
+  try {
+    const response = await fetch(config.endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${config.apiKey}`
+      },
+      body: JSON.stringify({
+        model: 'cogview-3',
+        prompt: prompt,
+        size: '1024x1024',
+        n: 1
+      })
+    })
+    
+    const data = await response.json()
+    
+    if (data.data && data.data[0]) {
+      return data.data[0].url || `data:image/png;base64,${data.data[0].b64_json}`
+    }
+    
+    return null
+  } catch (error) {
+    console.error('智谱AI API错误:', error)
+    return null
   }
 }
 
@@ -143,6 +194,9 @@ async function callTongyiAPI(prompt) {
     return null
   }
 }
+
+// 别名（保持兼容）
+const callTongyiAPIAlias = callTongyiAPI
 
 // ============ Stable Diffusion API ============
 async function callStableDiffusionAPI(prompt) {
@@ -268,9 +322,14 @@ export function getAvailableServices() {
     id: key,
     name: config.name,
     free: config.free,
-    price: config.price,
+    price: config.price || config.freeQuota,
     configured: !!config.apiKey
   }))
+}
+
+// ============ 获取智谱AI配置状态 ============
+export function isZhipuConfigured() {
+  return !!AI_IMAGE_APIS.zhipu.apiKey
 }
 
 // ============ 获取风格列表 ============

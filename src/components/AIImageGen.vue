@@ -92,8 +92,9 @@ const saveApiKey = () => {
       
       <div v-if="showApiKeyInput" class="api-input-section">
         <select v-model="selectedService" class="service-select">
-          <option value="tongyi">通义万相（免费）</option>
-          <option value="dalle">DALL-E 3（付费）</option>
+          <option value="zhipu">智谱AI CogView（会员免费）</option>
+          <option value="tongyi">通义万相（100张/月）</option>
+          <option value="dalle">DALL-E 3（$0.02/张）</option>
           <option value="sd">Stable Diffusion（本地）</option>
         </select>
         <input 
@@ -134,9 +135,10 @@ const saveApiKey = () => {
     <!-- 说明 -->
     <div class="info-section">
       <p class="info-text">
-        💡 AI生图需要配置API Key。推荐使用：
+        💡 推荐使用智谱AI会员（免费生图）
       </p>
       <ul class="api-list">
+        <li><strong>智谱AI</strong> - 会员免费生图，中文理解好</li>
         <li><strong>通义万相</strong> - 每月免费100张</li>
         <li><strong>DALL-E 3</strong> - 效果最好，$0.02/张</li>
         <li><strong>Stable Diffusion</strong> - 本地部署，完全免费</li>
