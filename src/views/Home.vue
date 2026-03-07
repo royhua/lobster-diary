@@ -87,11 +87,11 @@ const stats = computed(() => {
   }
 })
 
-// 切换暗黑模式
-const toggleDarkMode = () => {
-  darkMode.value = !darkMode.value
-  localStorage.setItem('darkMode', darkMode.value)
-}
+// 切换暗黑模式（由App.vue统一管理)
+// const toggleDarkMode = () => {
+//   darkMode.value = !darkMode.value
+//   localStorage.setItem('darkMode', darkMode.value)
+// }
 
 // 查看日记详情
 const viewDiary = (entry) => {
