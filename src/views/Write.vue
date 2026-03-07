@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAI } from '../composables/useAI.js'
+import TemplatePicker from '../components/TemplatePicker.vue'
 
 const router = useRouter()
 const { getRandomPrompt, getRandomQuote, extractTags, analyzeMood } = useAI()
@@ -12,6 +13,7 @@ const mood = ref(null)
 const prompt = ref('')
 const quote = ref('')
 const saving = ref(false)
+const showTemplates = ref(false)
 
 onMounted(() => {
   prompt.value = getRandomPrompt()
@@ -74,6 +76,13 @@ const wordCount = computed(() => content.value.length)
 // 取消
 const cancel = () => {
   router.push('/')
+}
+
+// 使用模板
+const useTemplate = (templateContent) => {
+  content.value = templateContent
+  showTemplates.value = false
+  handleInput()
 }
 </script>
 
@@ -141,15 +150,27 @@ const cancel = () => {
     
     <!-- 快捷操作 -->
     <div class="quick-actions">
-      <button class="quick-btn" @click="content += '\n\n今天的目标完成情况：'">
-        📋 添加目标回顾
+      <button class="quick-btn" @click="showTemplates = true">
+        📋 使用模板
+      </button>
+      <button class="quick-btn" @click="content += '\n\n今日目标完成：'">
+        🎯 目标回顾
       </button>
       <button class="quick-btn" @click="content += '\n\n明日计划：'">
-        📅 添加明日计划
+        📅 明日计划
       </button>
       <button class="quick-btn" @click="content += '\n\n感恩的事：'">
-        🙏 添加感恩清单
+        🙏 感恩清单
       </button>
+    </div>
+    
+    <!-- 模板选择器 -->
+    <div v-if="showTemplates" class="template-overlay" @click="showTemplates = false">
+      <TemplatePicker 
+        @select="useTemplate" 
+        @close="showTemplates = false"
+        @click.stop
+      />
     </div>
   </div>
 </template>
@@ -344,5 +365,18 @@ const cancel = () => {
 
 .quick-btn:hover {
   background: rgba(255,255,255,0.3);
+}
+
+/* 模板弹窗 */
+.template-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
 }
 </style>
