@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import diaryData from '../../public/diary-data.js'
+import { useImage, useShareCard } from '../composables/useImage.js'
 
 const diaries = ref([])
 const searchQuery = ref('')
@@ -8,6 +9,11 @@ const selectedTag = ref('')
 const darkMode = ref(false)
 const selectedDiary = ref(null)
 const showShareCard = ref(false)
+const showGallery = ref(false)
+const shareCardUrl = ref('')
+
+const { uploadImage, uploading } = useImage()
+const { generateCard } = useShareCard()
 
 // 加载数据
 onMounted(() => {
@@ -18,6 +24,16 @@ onMounted(() => {
   if (savedDarkMode !== null) {
     darkMode.value = savedDarkMode === 'true'
   }
+  
+  // 从localStorage读取图片数据
+  const savedImages = localStorage.getItem('diaryImages')
+  if (savedImages) {
+    const imagesMap = JSON.parse(savedImages)
+    diaries.value = diaries.value.map(d => ({
+      ...d,
+      image: imagesMap[d.id] || d.image
+    }))
+  }
 })
 
 // 所有标签
@@ -27,6 +43,11 @@ const allTags = computed(() => {
     entry.tags?.forEach(tag => tags.add(tag))
   })
   return Array.from(tags)
+})
+
+// 有图片的日记
+const diariesWithImages = computed(() => {
+  return diaries.value.filter(d => d.image).sort((a, b) => new Date(b.date) - new Date(a.date))
 })
 
 // 筛选后的日记
@@ -55,12 +76,14 @@ const stats = computed(() => {
   const lastUpdate = diaries.value.length > 0 
     ? new Date(diaries.value[0].date).toLocaleDateString('zh-CN')
     : '-'
+  const imagesCount = diaries.value.filter(d => d.image).length
   
   return {
     total: diaries.value.length,
     days: uniqueDays,
     tags: allTags.value.length,
-    lastUpdate
+    lastUpdate,
+    images: imagesCount
   }
 })
 
@@ -101,10 +124,56 @@ const exportMarkdown = () => {
   URL.revokeObjectURL(url)
 }
 
+// 上传图片
+const handleImageUpload = async (event, entry) => {
+  const file = event.target.files[0]
+  if (!file) return
+  
+  try {
+    const base64 = await uploadImage(file)
+    const diary = diaries.value.find(d => d.id === entry.id)
+    if (diary) {
+      diary.image = base64
+      saveImages()
+    }
+  } catch (e) {
+    console.error('上传失败:', e)
+  }
+}
+
+// 保存图片到localStorage
+const saveImages = () => {
+  const imagesMap = {}
+  diaries.value.forEach(d => {
+    if (d.image) {
+      imagesMap[d.id] = d.image
+    }
+  })
+  localStorage.setItem('diaryImages', JSON.stringify(imagesMap))
+}
+
+// 删除图片
+const removeImage = (entry) => {
+  const diary = diaries.value.find(d => d.id === entry.id)
+  if (diary) {
+    diary.image = null
+    saveImages()
+  }
+}
+
 // 生成分享卡片
-const generateShareCard = (entry) => {
+const generateShareCard = async (entry) => {
   selectedDiary.value = entry
+  shareCardUrl.value = await generateCard(entry)
   showShareCard.value = true
+}
+
+// 下载分享卡片
+const downloadShareCard = () => {
+  const a = document.createElement('a')
+  a.href = shareCardUrl.value
+  a.download = `龙虾日记_${new Date().toISOString().split('T')[0]}.png`
+  a.click()
 }
 
 // 格式化日期
@@ -143,8 +212,8 @@ const formatDate = (dateStr) => {
         <div class="stat-label">🏷️ 标签数量</div>
       </div>
       <div class="stat-card">
-        <div class="stat-value">{{ stats.lastUpdate }}</div>
-        <div class="stat-label">🕐 最后更新</div>
+        <div class="stat-value">{{ stats.images }}</div>
+        <div class="stat-label">📷 配图数量</div>
       </div>
     </div>
 
@@ -162,6 +231,9 @@ const formatDate = (dateStr) => {
           {{ tag }}
         </option>
       </select>
+      <button @click="showGallery = !showGallery" class="btn-icon" :title="showGallery ? '查看列表' : '查看图片墙'">
+        {{ showGallery ? '📋' : '🖼️' }}
+      </button>
       <button @click="toggleDarkMode" class="btn-icon" :title="darkMode ? '切换亮色' : '切换暗色'">
         {{ darkMode ? '☀️' : '🌙' }}
       </button>
@@ -170,14 +242,41 @@ const formatDate = (dateStr) => {
       </button>
     </div>
 
+    <!-- 图片墙模式 -->
+    <div v-if="showGallery" class="gallery">
+      <div v-if="diariesWithImages.length === 0" class="empty-state">
+        <span class="empty-icon">📷</span>
+        <p>还没有配图哦~</p>
+        <p class="empty-tip">点击日记上传图片</p>
+      </div>
+      <div v-else class="gallery-grid">
+        <div 
+          v-for="entry in diariesWithImages" 
+          :key="entry.id"
+          class="gallery-item"
+          @click="viewDiary(entry)"
+        >
+          <img :src="entry.image" :alt="entry.content" />
+          <div class="gallery-overlay">
+            <span class="gallery-date">{{ formatDate(entry.date).full }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- 日记列表 -->
-    <div class="diary-list">
+    <div v-else class="diary-list">
       <div 
         v-for="entry in filteredDiaries" 
-        :key="entry.date"
+        :key="entry.id || entry.date"
         class="diary-entry"
         @click="viewDiary(entry)"
       >
+        <!-- 配图预览 -->
+        <div v-if="entry.image" class="diary-image-preview">
+          <img :src="entry.image" :alt="entry.content" />
+        </div>
+        
         <div class="diary-date">
           <span class="date-day">{{ formatDate(entry.date).day }}</span>
           <span class="date-month">{{ formatDate(entry.date).month }}</span>
@@ -212,6 +311,31 @@ const formatDate = (dateStr) => {
     <div v-if="selectedDiary && !showShareCard" class="modal-overlay" @click="closeDetail">
       <div class="modal-content" @click.stop>
         <button class="modal-close" @click="closeDetail">✕</button>
+        
+        <!-- 配图区域 -->
+        <div class="modal-image" v-if="selectedDiary.image">
+          <img :src="selectedDiary.image" :alt="selectedDiary.content" />
+          <button class="btn-remove-image" @click="removeImage(selectedDiary)" title="删除图片">
+            🗑️
+          </button>
+        </div>
+        
+        <!-- 上传区域 -->
+        <div v-else class="modal-upload">
+          <label class="upload-area">
+            <input 
+              type="file" 
+              accept="image/*" 
+              @change="(e) => handleImageUpload(e, selectedDiary)"
+              hidden
+            />
+            <span v-if="uploading" class="upload-text">上传中...</span>
+            <span v-else class="upload-text">
+              📷 点击上传配图
+            </span>
+          </label>
+        </div>
+        
         <div class="modal-header">
           <span class="modal-date">{{ formatDate(selectedDiary.date).full }}</span>
         </div>
@@ -233,26 +357,17 @@ const formatDate = (dateStr) => {
 
     <!-- 分享卡片弹窗 -->
     <div v-if="showShareCard && selectedDiary" class="modal-overlay" @click="showShareCard = false">
-      <div class="share-card" @click.stop>
+      <div class="share-card-modal" @click.stop>
         <button class="modal-close" @click="showShareCard = false">✕</button>
-        <div class="share-card-content" id="share-card">
-          <div class="share-header">
-            <span class="share-logo">🦞</span>
-            <span class="share-title">龙虾日记</span>
-          </div>
-          <div class="share-body">
-            <p class="share-text">"{{ selectedDiary.content }}"</p>
-          </div>
-          <div class="share-footer">
-            <span class="share-date">{{ formatDate(selectedDiary.date).full }}</span>
-            <div class="share-tags" v-if="selectedDiary.tags?.length">
-              <span v-for="tag in selectedDiary.tags" :key="tag" class="share-tag">
-                #{{ tag }}
-              </span>
-            </div>
-          </div>
+        <div class="share-card-preview">
+          <img :src="shareCardUrl" alt="分享卡片" />
         </div>
-        <p class="share-tip">💡 长按图片保存</p>
+        <div class="share-actions">
+          <button class="btn-action" @click="downloadShareCard">
+            💾 保存图片
+          </button>
+        </div>
+        <p class="share-tip">💡 点击保存按钮下载分享图</p>
       </div>
     </div>
 
@@ -444,6 +559,63 @@ body {
   box-shadow: 0 5px 15px rgba(0,0,0,0.2);
 }
 
+/* 图片墙 */
+.gallery {
+  background: white;
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+
+.dark-mode .gallery {
+  background: #2d2d4e;
+}
+
+.gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.gallery-item {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  aspect-ratio: 4/3;
+}
+
+.gallery-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s;
+}
+
+.gallery-item:hover img {
+  transform: scale(1.05);
+}
+
+.gallery-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 15px;
+  background: linear-gradient(transparent, rgba(0,0,0,0.7));
+  color: white;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.gallery-item:hover .gallery-overlay {
+  opacity: 1;
+}
+
+.gallery-date {
+  font-size: 0.9rem;
+}
+
 /* 日记列表 */
 .diary-list {
   background: white;
@@ -459,14 +631,12 @@ body {
 .diary-entry {
   display: flex;
   gap: 20px;
-  padding: 20px 0;
+  padding: 20px 10px;
   border-bottom: 1px solid rgba(0,0,0,0.08);
   animation: fadeInUp 0.5s ease;
   cursor: pointer;
   transition: background 0.2s;
   border-radius: 10px;
-  padding-left: 10px;
-  padding-right: 10px;
 }
 
 .diary-entry:hover {
@@ -479,6 +649,21 @@ body {
 
 .diary-entry:last-child {
   border-bottom: none;
+}
+
+/* 配图预览 */
+.diary-image-preview {
+  width: 80px;
+  height: 60px;
+  border-radius: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.diary-image-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .diary-date {
@@ -586,6 +771,12 @@ body {
   margin-bottom: 16px;
 }
 
+.empty-tip {
+  font-size: 0.9rem;
+  margin-top: 8px;
+  opacity: 0.7;
+}
+
 /* 弹窗 */
 .modal-overlay {
   position: fixed;
@@ -607,7 +798,7 @@ body {
   padding: 30px;
   max-width: 600px;
   width: 100%;
-  max-height: 80vh;
+  max-height: 90vh;
   overflow-y: auto;
   position: relative;
   animation: fadeInUp 0.3s ease;
@@ -632,11 +823,68 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  z-index: 10;
 }
 
 .dark-mode .modal-close {
   background: rgba(255, 255, 255, 0.1);
   color: white;
+}
+
+/* 配图区域 */
+.modal-image {
+  position: relative;
+  margin: -30px -30px 20px;
+  border-radius: 20px 20px 0 0;
+  overflow: hidden;
+}
+
+.modal-image img {
+  width: 100%;
+  max-height: 300px;
+  object-fit: cover;
+}
+
+.btn-remove-image {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 8px;
+  background: rgba(0,0,0,0.6);
+  color: white;
+  cursor: pointer;
+}
+
+/* 上传区域 */
+.modal-upload {
+  margin: -30px -30px 20px;
+  border-radius: 20px 20px 0 0;
+  overflow: hidden;
+}
+
+.upload-area {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 150px;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.upload-area:hover {
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.2), rgba(118, 75, 162, 0.2));
+}
+
+.upload-text {
+  font-size: 1.1rem;
+  color: #667eea;
+}
+
+.dark-mode .upload-text {
+  color: #a78bfa;
 }
 
 .modal-header {
@@ -694,79 +942,42 @@ body {
   box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
 }
 
-/* 分享卡片 */
-.share-card {
+/* 分享卡片弹窗 */
+.share-card-modal {
   background: white;
   border-radius: 20px;
   padding: 30px;
-  max-width: 400px;
+  max-width: 500px;
   width: 100%;
   position: relative;
   animation: fadeInUp 0.3s ease;
 }
 
-.share-card-content {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+.dark-mode .share-card-modal {
+  background: #2d2d4e;
+}
+
+.share-card-preview {
   border-radius: 16px;
-  padding: 30px;
-  color: white;
-}
-
-.share-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  overflow: hidden;
   margin-bottom: 20px;
 }
 
-.share-logo {
-  font-size: 2rem;
-}
-
-.share-title {
-  font-size: 1.2rem;
-  font-weight: 700;
-}
-
-.share-body {
-  margin-bottom: 20px;
-}
-
-.share-text {
-  font-size: 1.1rem;
-  line-height: 1.8;
-  font-style: italic;
-}
-
-.share-footer {
-  border-top: 1px solid rgba(255, 255, 255, 0.2);
-  padding-top: 15px;
-}
-
-.share-date {
+.share-card-preview img {
+  width: 100%;
   display: block;
-  font-size: 0.9rem;
-  opacity: 0.8;
-  margin-bottom: 10px;
 }
 
-.share-tags {
+.share-actions {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.share-tag {
-  padding: 4px 10px;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 12px;
-  font-size: 0.8rem;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 15px;
 }
 
 .share-tip {
   text-align: center;
   color: #888;
-  margin-top: 15px;
   font-size: 0.9rem;
 }
 
@@ -800,6 +1011,10 @@ body {
   
   .diary-actions {
     justify-content: flex-end;
+  }
+  
+  .gallery-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 </style>
