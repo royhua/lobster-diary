@@ -1,22 +1,28 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import diaryData from '../../public/diary-data.js'
 import { useImage, useShareCard } from '../composables/useImage.js'
 
+const router = useRouter()
 const diaries = ref([])
 const searchQuery = ref('')
 const selectedTag = ref('')
 const darkMode = ref(false)
 const selectedDiary = ref(null)
 const showShareCard = ref(false)
-const showGallery = ref(false)
 const shareCardUrl = ref('')
-const viewMode = ref('list') // list | gallery | timeline
+const viewMode = ref('list')
+const touchStartX = ref(0)
+const isMobile = ref(false)
 
 const { uploadImage, uploading } = useImage()
 const { generateCard } = useShareCard()
 
+// 检测移动端
 onMounted(() => {
+  isMobile.value = window.innerWidth < 768
+  
   diaries.value = diaryData || []
   
   const savedDarkMode = localStorage.getItem('darkMode')
@@ -39,6 +45,11 @@ onMounted(() => {
       image: imagesMap[d.id] || d.image
     }))
   }
+  
+  // 监听窗口大小变化
+  window.addEventListener('resize', () => {
+    isMobile.value = window.innerWidth < 768
+  })
 })
 
 const allTags = computed(() => {
@@ -47,10 +58,6 @@ const allTags = computed(() => {
     entry.tags?.forEach(tag => tags.add(tag))
   })
   return Array.from(tags)
-})
-
-const diariesWithImages = computed(() => {
-  return diaries.value.filter(d => d.image).sort((a, b) => new Date(b.date) - new Date(a.date))
 })
 
 const filteredDiaries = computed(() => {
@@ -74,14 +81,30 @@ const filteredDiaries = computed(() => {
 const stats = computed(() => ({
   total: diaries.value.length,
   days: new Set(diaries.value.map(e => e.date)).size,
-  tags: allTags.value.length,
-  lastUpdate: diaries.value.length > 0 ? new Date(diaries.value[0].date).toLocaleDateString('zh-CN') : '-',
   images: diaries.value.filter(d => d.image).length
 }))
 
-const toggleDarkMode = () => {
-  darkMode.value = !darkMode.value
-  localStorage.setItem('darkMode', darkMode.value)
+// 滑动手势切换视图
+const handleTouchStart = (e) => {
+  touchStartX.value = e.touches[0].clientX
+}
+
+const handleTouchEnd = (e) => {
+  if (!isMobile.value) return
+  
+  const touchEndX = e.changedTouches[0].clientX
+  const diff = touchEndX.value - touchStartX.value
+  
+  if (Math.abs(diff) > 100) {
+    const views = ['list', 'gallery', 'timeline']
+    const currentIndex = views.indexOf(viewMode.value)
+    
+    if (diff > 0 && currentIndex > 0) {
+      viewMode.value = views[currentIndex - 1]
+    } else if (diff < 0 && currentIndex < views.length - 1) {
+      viewMode.value = views[currentIndex + 1]
+    }
+  }
 }
 
 const viewDiary = (entry) => {
@@ -142,20 +165,25 @@ const formatDate = (dateStr) => {
   return {
     day: date.getDate(),
     month: date.toLocaleDateString('zh-CN', { month: 'long' }),
-    weekday: date.toLocaleDateString('zh-CN', { weekday: 'long' }),
+    weekday: date.toLocaleDateString('zh-CN', { weekday: 'short' }),
     full: date.toLocaleDateString('zh-CN')
   }
 }
 </script>
 
 <template>
-  <div class="home-page" :class="{ 'dark-mode': darkMode }">
+  <div 
+    class="home-page" 
+    :class="{ 'dark-mode': darkMode, 'is-mobile': isMobile }"
+    @touchstart="handleTouchStart"
+    @touchend="handleTouchEnd"
+  >
     <!-- Hero 区域 -->
     <section class="hero">
       <div class="hero-content">
         <h1 class="hero-title">
           <span class="title-icon">🦞</span>
-          龙虾日记
+          <span class="title-text">龙虾日记</span>
         </h1>
         <p class="hero-subtitle">记录生活中的每一个精彩瞬间</p>
       </div>
@@ -197,7 +225,7 @@ const formatDate = (dateStr) => {
           <option v-for="tag in allTags" :key="tag" :value="tag">{{ tag }}</option>
         </select>
         
-        <div class="view-toggle">
+        <div class="view-toggle" v-if="!isMobile">
           <button 
             :class="['toggle-btn', { active: viewMode === 'list' }]" 
             @click="viewMode = 'list'"
@@ -212,33 +240,19 @@ const formatDate = (dateStr) => {
           >📅</button>
         </div>
       </div>
-    </section>
-
-    <!-- 图片墙视图 -->
-    <section v-if="viewMode === 'gallery'" class="gallery-section">
-      <div v-if="diariesWithImages.length === 0" class="empty-state">
-        <span class="empty-icon">📷</span>
-        <p>还没有配图日记</p>
-        <p class="empty-hint">点击日记上传图片吧~</p>
-      </div>
-      <div v-else class="gallery-grid">
-        <div 
-          v-for="entry in diariesWithImages" 
-          :key="entry.id"
-          class="gallery-card"
-          @click="viewDiary(entry)"
-        >
-          <img :src="entry.image" :alt="entry.content" class="gallery-image" />
-          <div class="gallery-overlay">
-            <span class="gallery-date">{{ formatDate(entry.date).full }}</span>
-            <p class="gallery-content">{{ entry.content.slice(0, 50) }}...</p>
-          </div>
-        </div>
+      
+      <!-- 移动端视图指示器 -->
+      <div class="view-indicator" v-if="isMobile">
+        <span 
+          v-for="v in ['list', 'gallery', 'timeline']" 
+          :key="v"
+          :class="['indicator-dot', { active: viewMode === v }]"
+        ></span>
       </div>
     </section>
 
-    <!-- 列表视图 -->
-    <section v-else-if="viewMode === 'list'" class="diary-section">
+    <!-- 日记列表视图 -->
+    <section v-if="viewMode === 'list'" class="diary-section">
       <div v-if="filteredDiaries.length === 0" class="empty-state">
         <span class="empty-icon">📝</span>
         <p>还没有日记</p>
@@ -253,7 +267,7 @@ const formatDate = (dateStr) => {
           @click="viewDiary(entry)"
         >
           <div v-if="entry.image" class="card-image">
-            <img :src="entry.image" :alt="entry.content" />
+            <img :src="entry.image" :alt="entry.content" loading="lazy" />
           </div>
           <div class="card-body">
             <div class="card-date">
@@ -263,7 +277,7 @@ const formatDate = (dateStr) => {
             <div class="card-content">
               <p class="content-text">{{ entry.content }}</p>
               <div class="card-tags" v-if="entry.tags?.length">
-                <span v-for="tag in entry.tags" :key="tag" class="tag" @click.stop="selectedTag = tag">
+                <span v-for="tag in entry.tags.slice(0, 3)" :key="tag" class="tag" @click.stop="selectedTag = tag">
                   #{{ tag }}
                 </span>
               </div>
@@ -273,6 +287,23 @@ const formatDate = (dateStr) => {
             </button>
           </div>
         </article>
+      </div>
+    </section>
+
+    <!-- 图片墙视图 -->
+    <section v-else-if="viewMode === 'gallery'" class="gallery-section">
+      <div class="gallery-grid">
+        <div 
+          v-for="entry in filteredDiaries.filter(d => d.image)" 
+          :key="entry.id"
+          class="gallery-card"
+          @click="viewDiary(entry)"
+        >
+          <img :src="entry.image" :alt="entry.content" class="gallery-image" loading="lazy" />
+          <div class="gallery-overlay">
+            <span class="gallery-date">{{ formatDate(entry.date).full }}</span>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -289,139 +320,136 @@ const formatDate = (dateStr) => {
             <span class="marker-day">{{ formatDate(entry.date).day }}</span>
           </div>
           <div class="timeline-content">
-            <div class="timeline-date">{{ formatDate(entry.date).full }} · {{ formatDate(entry.date).weekday }}</div>
+            <div class="timeline-date">{{ formatDate(entry.date).full }}</div>
             <p class="timeline-text">{{ entry.content }}</p>
             <div class="timeline-tags" v-if="entry.tags?.length">
               <span v-for="tag in entry.tags" :key="tag" class="tag">#{{ tag }}</span>
             </div>
-            <img v-if="entry.image" :src="entry.image" class="timeline-image" />
+            <img v-if="entry.image" :src="entry.image" class="timeline-image" loading="lazy" />
           </div>
         </div>
       </div>
     </section>
 
     <!-- 日记详情弹窗 -->
-    <div v-if="selectedDiary && !showShareCard" class="modal-overlay" @click="closeDetail">
-      <div class="modal-card" @click.stop>
-        <button class="modal-close" @click="closeDetail">✕</button>
-        
-        <div class="modal-image" v-if="selectedDiary.image">
-          <img :src="selectedDiary.image" :alt="selectedDiary.content" />
-          <button class="remove-image" @click="removeImage(selectedDiary)">🗑️</button>
-        </div>
-        <div v-else class="modal-upload">
-          <label class="upload-btn">
-            <input type="file" accept="image/*" @change="(e) => handleImageUpload(e, selectedDiary)" hidden />
-            <span v-if="uploading">上传中...</span>
-            <span v-else>📷 添加配图</span>
-          </label>
-        </div>
-        
-        <div class="modal-header">
-          <span class="modal-date">{{ formatDate(selectedDiary.date).full }}</span>
-          <span class="modal-weekday">{{ formatDate(selectedDiary.date).weekday }}</span>
-        </div>
-        
-        <div class="modal-body">
-          <p class="modal-text">{{ selectedDiary.content }}</p>
-          <div class="modal-tags" v-if="selectedDiary.tags?.length">
-            <span v-for="tag in selectedDiary.tags" :key="tag" class="tag">#{{ tag }}</span>
+    <Teleport to="body">
+      <div v-if="selectedDiary && !showShareCard" class="modal-overlay" @click="closeDetail">
+        <div class="modal-card" :class="{ 'full-screen': isMobile }" @click.stop>
+          <button class="modal-close" @click="closeDetail">✕</button>
+          
+          <div class="modal-image" v-if="selectedDiary.image">
+            <img :src="selectedDiary.image" :alt="selectedDiary.content" @click="openImagePreview" />
+            <button class="remove-image" @click="removeImage(selectedDiary)">🗑️</button>
+          </div>
+          <div v-else class="modal-upload">
+            <label class="upload-btn">
+              <input type="file" accept="image/*" @change="(e) => handleImageUpload(e, selectedDiary)" hidden />
+              <span v-if="uploading">上传中...</span>
+              <span v-else>📷 添加配图</span>
+            </label>
+          </div>
+          
+          <div class="modal-header">
+            <span class="modal-date">{{ formatDate(selectedDiary.date).full }}</span>
+          </div>
+          
+          <div class="modal-body">
+            <p class="modal-text">{{ selectedDiary.content }}</p>
+            <div class="modal-tags" v-if="selectedDiary.tags?.length">
+              <span v-for="tag in selectedDiary.tags" :key="tag" class="tag">#{{ tag }}</span>
+            </div>
+          </div>
+          
+          <div class="modal-actions">
+            <button class="action-btn primary" @click="generateShareCard(selectedDiary)">
+              📤 生成分享卡
+            </button>
           </div>
         </div>
-        
-        <div class="modal-actions">
-          <button class="action-btn primary" @click="generateShareCard(selectedDiary)">
-            📤 生成分享卡
-          </button>
-        </div>
       </div>
-    </div>
+    </Teleport>
 
     <!-- 分享卡片弹窗 -->
-    <div v-if="showShareCard && selectedDiary" class="modal-overlay" @click="showShareCard = false">
-      <div class="share-modal" @click.stop>
-        <button class="modal-close" @click="showShareCard = false">✕</button>
-        <div class="share-preview">
-          <img :src="shareCardUrl" alt="分享卡片" />
+    <Teleport to="body">
+      <div v-if="showShareCard && selectedDiary" class="modal-overlay" @click="showShareCard = false">
+        <div class="share-modal" :class="{ 'full-screen': isMobile }" @click.stop>
+          <button class="modal-close" @click="showShareCard = false">✕</button>
+          <div class="share-preview">
+            <img :src="shareCardUrl" alt="分享卡片" />
+          </div>
+          <div class="share-actions">
+            <button class="action-btn primary" @click="downloadShareCard">💾 保存图片</button>
+          </div>
         </div>
-        <div class="share-actions">
-          <button class="action-btn primary" @click="downloadShareCard">💾 保存图片</button>
-        </div>
-        <p class="share-tip">点击保存按钮下载分享图</p>
       </div>
-    </div>
+    </Teleport>
   </div>
 </template>
 
 <style scoped>
-/* ============ 变量 ============ */
+/* ============ 移动端优化样式 ============ */
+
+/* 基础变量 */
 .home-page {
   --bg-primary: #ffffff;
   --bg-secondary: #f8fafc;
   --text-primary: #1e293b;
   --text-secondary: #64748b;
-  --text-muted: #94a3b8;
-  --border-color: #e2e8f0;
   --accent: #6366f1;
   --accent-light: rgba(99, 102, 241, 0.1);
   
   max-width: 900px;
   margin: 0 auto;
-  padding: 0 20px 40px;
+  padding: 0 16px 100px;
 }
 
-.dark-mode {
-  --bg-primary: #1e293b;
-  --bg-secondary: #0f172a;
-  --text-primary: #f1f5f9;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
-  --border-color: #334155;
+/* 移动端底部导航空间 */
+.home-page.is-mobile {
+  padding-bottom: 100px;
 }
 
-/* ============ Hero ============ */
+/* Hero 区域 */
 .hero {
   text-align: center;
-  padding: 60px 0 40px;
+  padding: 40px 0 30px;
   color: white;
 }
 
 .hero-title {
-  font-size: 3rem;
+  font-size: 2.5rem;
   font-weight: 800;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .title-icon {
-  font-size: 3.5rem;
+  font-size: 3rem;
   animation: float 3s ease-in-out infinite;
 }
 
 @keyframes float {
   0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
+  50% { transform: translateY(-8px); }
 }
 
 .hero-subtitle {
-  font-size: 1.2rem;
+  font-size: 1rem;
   opacity: 0.9;
-  margin-bottom: 30px;
+  margin-bottom: 24px;
 }
 
+/* 统计胶囊 */
 .stats-row {
-  display: flex;
-  justify-content: center;
+  display: inline-flex;
   align-items: center;
-  gap: 24px;
+  gap: 20px;
   background: rgba(255, 255, 255, 0.15);
   backdrop-filter: blur(10px);
-  padding: 20px 40px;
+  padding: 16px 32px;
   border-radius: 100px;
-  display: inline-flex;
 }
 
 .stat-item {
@@ -430,99 +458,109 @@ const formatDate = (dateStr) => {
 
 .stat-value {
   display: block;
-  font-size: 2rem;
+  font-size: 1.8rem;
   font-weight: 700;
 }
 
 .stat-label {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   opacity: 0.8;
 }
 
 .stat-divider {
   width: 1px;
-  height: 40px;
+  height: 36px;
   background: rgba(255, 255, 255, 0.3);
 }
 
-/* ============ 工具栏 ============ */
+/* 工具栏 */
 .toolbar-section {
-  display: flex;
-  gap: 16px;
-  margin-bottom: 30px;
-  flex-wrap: wrap;
+  margin-bottom: 24px;
 }
 
 .search-box {
-  flex: 1;
-  min-width: 250px;
   position: relative;
+  margin-bottom: 12px;
 }
 
 .search-icon {
   position: absolute;
-  left: 16px;
+  left: 14px;
   top: 50%;
   transform: translateY(-50%);
-  font-size: 1.1rem;
+  font-size: 1rem;
 }
 
 .search-input {
   width: 100%;
-  padding: 14px 16px 14px 48px;
+  padding: 12px 14px 12px 42px;
   border: none;
   border-radius: 12px;
   background: var(--bg-primary);
-  color: var(--text-primary);
   font-size: 1rem;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-  transition: all 0.2s;
-}
-
-.search-input:focus {
-  outline: none;
-  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.2);
 }
 
 .filter-group {
   display: flex;
-  gap: 12px;
+  gap: 10px;
+  justify-content: space-between;
 }
 
 .tag-filter {
-  padding: 14px 20px;
+  flex: 1;
+  padding: 10px 14px;
   border: none;
-  border-radius: 12px;
+  border-radius: 10px;
   background: var(--bg-primary);
-  color: var(--text-primary);
-  font-size: 1rem;
-  cursor: pointer;
+  font-size: 0.95rem;
 }
 
 .view-toggle {
   display: flex;
   background: var(--bg-primary);
-  border-radius: 12px;
+  border-radius: 10px;
   overflow: hidden;
 }
 
 .toggle-btn {
-  padding: 14px 16px;
+  padding: 10px 14px;
   border: none;
   background: transparent;
   cursor: pointer;
-  font-size: 1.1rem;
-  transition: all 0.2s;
+  font-size: 1rem;
 }
 
 .toggle-btn.active {
   background: var(--accent-light);
 }
 
-/* ============ 日记卡片 ============ */
+/* 移动端视图指示器 */
+.view-indicator {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.indicator-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.4);
+  transition: all 0.3s;
+}
+
+.indicator-dot.active {
+  width: 24px;
+  border-radius: 4px;
+  background: white;
+}
+
+/* 日记卡片 */
 .diary-cards {
-  display: grid;
-  gap: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .diary-card {
@@ -530,17 +568,16 @@ const formatDate = (dateStr) => {
   border-radius: 16px;
   overflow: hidden;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.3s;
   box-shadow: 0 2px 8px rgba(0,0,0,0.06);
 }
 
-.diary-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 24px rgba(0,0,0,0.1);
+.diary-card:active {
+  transform: scale(0.98);
 }
 
 .card-image {
-  height: 200px;
+  height: 180px;
   overflow: hidden;
 }
 
@@ -548,17 +585,12 @@ const formatDate = (dateStr) => {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.3s;
-}
-
-.diary-card:hover .card-image img {
-  transform: scale(1.05);
 }
 
 .card-body {
-  padding: 20px;
+  padding: 16px;
   display: flex;
-  gap: 20px;
+  gap: 14px;
   align-items: flex-start;
 }
 
@@ -566,80 +598,76 @@ const formatDate = (dateStr) => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  min-width: 50px;
-  padding: 12px;
+  min-width: 48px;
+  padding: 10px;
   background: var(--accent-light);
-  border-radius: 12px;
+  border-radius: 10px;
 }
 
 .date-day {
-  font-size: 1.8rem;
+  font-size: 1.5rem;
   font-weight: 700;
   color: var(--accent);
   line-height: 1;
 }
 
 .date-month {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   color: var(--text-secondary);
-  margin-top: 4px;
+  margin-top: 2px;
 }
 
 .card-content {
   flex: 1;
+  min-width: 0;
 }
 
 .content-text {
-  font-size: 1rem;
-  line-height: 1.7;
+  font-size: 0.95rem;
+  line-height: 1.6;
   color: var(--text-primary);
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .card-tags {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   flex-wrap: wrap;
 }
 
 .tag {
-  padding: 4px 12px;
+  padding: 3px 10px;
   background: var(--accent-light);
   color: var(--accent);
-  border-radius: 20px;
-  font-size: 0.85rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
 }
 
 .card-action {
-  padding: 10px;
+  padding: 8px;
   border: none;
   background: transparent;
   cursor: pointer;
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   border-radius: 8px;
-  transition: background 0.2s;
 }
 
-.card-action:hover {
-  background: var(--accent-light);
-}
-
-/* ============ 图片墙 ============ */
+/* 图片墙 */
 .gallery-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
 }
 
 .gallery-card {
   position: relative;
-  border-radius: 16px;
+  border-radius: 12px;
   overflow: hidden;
-  aspect-ratio: 4/3;
+  aspect-ratio: 1;
   cursor: pointer;
 }
 
@@ -647,11 +675,6 @@ const formatDate = (dateStr) => {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.3s;
-}
-
-.gallery-card:hover .gallery-image {
-  transform: scale(1.05);
 }
 
 .gallery-overlay {
@@ -659,37 +682,31 @@ const formatDate = (dateStr) => {
   bottom: 0;
   left: 0;
   right: 0;
-  padding: 20px;
-  background: linear-gradient(transparent, rgba(0,0,0,0.8));
+  padding: 12px;
+  background: linear-gradient(transparent, rgba(0,0,0,0.7));
   color: white;
-  transform: translateY(100%);
-  transition: transform 0.3s;
+  opacity: 0;
+  transition: opacity 0.3s;
 }
 
-.gallery-card:hover .gallery-overlay {
-  transform: translateY(0);
+.gallery-card:active .gallery-overlay {
+  opacity: 1;
 }
 
 .gallery-date {
-  font-size: 0.85rem;
-  opacity: 0.9;
+  font-size: 0.8rem;
 }
 
-.gallery-content {
-  font-size: 0.95rem;
-  margin-top: 4px;
-}
-
-/* ============ 时间线 ============ */
+/* 时间线 */
 .timeline {
   position: relative;
-  padding-left: 40px;
+  padding-left: 36px;
 }
 
 .timeline::before {
   content: '';
   position: absolute;
-  left: 15px;
+  left: 14px;
   top: 0;
   bottom: 0;
   width: 2px;
@@ -698,15 +715,15 @@ const formatDate = (dateStr) => {
 
 .timeline-item {
   position: relative;
-  padding-bottom: 30px;
+  padding-bottom: 24px;
   cursor: pointer;
 }
 
 .timeline-marker {
   position: absolute;
-  left: -40px;
-  width: 32px;
-  height: 32px;
+  left: -36px;
+  width: 28px;
+  height: 28px;
   background: var(--accent);
   border-radius: 50%;
   display: flex;
@@ -714,88 +731,42 @@ const formatDate = (dateStr) => {
   justify-content: center;
   color: white;
   font-weight: 600;
-  font-size: 0.85rem;
+  font-size: 0.75rem;
 }
 
 .timeline-content {
   background: var(--bg-primary);
-  padding: 20px;
-  border-radius: 16px;
-  transition: all 0.2s;
-}
-
-.timeline-item:hover .timeline-content {
-  transform: translateX(8px);
+  padding: 16px;
+  border-radius: 12px;
 }
 
 .timeline-date {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: var(--text-secondary);
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .timeline-text {
-  font-size: 1rem;
-  line-height: 1.7;
+  font-size: 0.95rem;
+  line-height: 1.6;
   color: var(--text-primary);
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .timeline-tags {
   display: flex;
-  gap: 8px;
-  margin-bottom: 12px;
+  gap: 6px;
+  margin-bottom: 8px;
 }
 
 .timeline-image {
   width: 100%;
-  max-height: 300px;
+  max-height: 200px;
   object-fit: cover;
-  border-radius: 12px;
-  margin-top: 12px;
+  border-radius: 8px;
 }
 
-/* ============ 空状态 ============ */
-.empty-state {
-  text-align: center;
-  padding: 80px 20px;
-  color: white;
-}
-
-.empty-icon {
-  font-size: 5rem;
-  display: block;
-  margin-bottom: 16px;
-  opacity: 0.8;
-}
-
-.empty-state p {
-  font-size: 1.2rem;
-  margin-bottom: 8px;
-}
-
-.empty-hint {
-  opacity: 0.7;
-  font-size: 1rem !important;
-}
-
-.empty-btn {
-  display: inline-block;
-  margin-top: 20px;
-  padding: 12px 24px;
-  background: white;
-  color: var(--accent);
-  border-radius: 100px;
-  text-decoration: none;
-  font-weight: 600;
-  transition: transform 0.2s;
-}
-
-.empty-btn:hover {
-  transform: scale(1.05);
-}
-
-/* ============ 弹窗 ============ */
+/* 弹窗 */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -811,121 +782,116 @@ const formatDate = (dateStr) => {
 .modal-card {
   background: var(--bg-primary);
   border-radius: 20px;
-  max-width: 600px;
+  max-width: 500px;
   width: 100%;
-  max-height: 90vh;
+  max-height: 85vh;
   overflow-y: auto;
   position: relative;
-  animation: modalIn 0.3s ease;
+  animation: modalIn 0.25s ease;
+}
+
+/* 移动端全屏弹窗 */
+.modal-card.full-screen,
+.share-modal.full-screen {
+  max-width: 100%;
+  max-height: 100%;
+  height: 100%;
+  border-radius: 0;
+  margin: 0;
 }
 
 @keyframes modalIn {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
 }
 
 .modal-close {
   position: absolute;
-  top: 16px;
-  right: 16px;
-  width: 36px;
-  height: 36px;
+  top: 12px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
   border: none;
   border-radius: 50%;
   background: rgba(0,0,0,0.1);
   cursor: pointer;
-  font-size: 1rem;
+  font-size: 0.9rem;
   z-index: 10;
-}
-
-.modal-image {
-  position: relative;
 }
 
 .modal-image img {
   width: 100%;
-  max-height: 300px;
+  max-height: 250px;
   object-fit: cover;
 }
 
 .remove-image {
   position: absolute;
-  bottom: 12px;
-  right: 12px;
-  padding: 8px 12px;
+  bottom: 10px;
+  right: 10px;
+  padding: 6px 10px;
   border: none;
-  border-radius: 8px;
+  border-radius: 6px;
   background: rgba(0,0,0,0.6);
   color: white;
   cursor: pointer;
+  font-size: 0.85rem;
 }
 
 .modal-upload {
-  padding: 40px;
+  padding: 30px;
   text-align: center;
   background: var(--accent-light);
 }
 
 .upload-btn {
   display: inline-block;
-  padding: 16px 32px;
+  padding: 12px 24px;
   background: var(--accent);
   color: white;
-  border-radius: 12px;
+  border-radius: 10px;
   cursor: pointer;
   font-weight: 500;
 }
 
 .modal-header {
-  padding: 20px 24px 0;
+  padding: 16px 20px 0;
 }
 
 .modal-date {
-  font-size: 1.5rem;
+  font-size: 1.3rem;
   font-weight: 700;
   color: var(--text-primary);
 }
 
-.modal-weekday {
-  color: var(--text-secondary);
-  margin-left: 8px;
-}
-
 .modal-body {
-  padding: 16px 24px 24px;
+  padding: 12px 20px 20px;
 }
 
 .modal-text {
-  font-size: 1.1rem;
-  line-height: 1.8;
+  font-size: 1rem;
+  line-height: 1.7;
   color: var(--text-primary);
 }
 
 .modal-tags {
   display: flex;
-  gap: 8px;
-  margin-top: 16px;
+  gap: 6px;
+  margin-top: 12px;
 }
 
 .modal-actions {
-  padding: 0 24px 24px;
+  padding: 0 20px 20px;
 }
 
 .action-btn {
   width: 100%;
-  padding: 14px 24px;
+  padding: 12px 20px;
   border: none;
-  border-radius: 12px;
+  border-radius: 10px;
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
 }
 
 .action-btn.primary {
@@ -933,24 +899,19 @@ const formatDate = (dateStr) => {
   color: white;
 }
 
-.action-btn.primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
-}
-
 /* 分享弹窗 */
 .share-modal {
   background: var(--bg-primary);
-  border-radius: 20px;
-  padding: 24px;
-  max-width: 450px;
+  border-radius: 16px;
+  padding: 20px;
+  max-width: 400px;
   width: 100%;
 }
 
 .share-preview {
-  border-radius: 12px;
+  border-radius: 10px;
   overflow: hidden;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .share-preview img {
@@ -959,51 +920,85 @@ const formatDate = (dateStr) => {
 }
 
 .share-actions {
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
-.share-tip {
+/* 空状态 */
+.empty-state {
   text-align: center;
-  color: var(--text-secondary);
-  font-size: 0.9rem;
+  padding: 60px 20px;
+  color: white;
 }
 
-/* ============ 响应式 ============ */
-@media (max-width: 640px) {
+.empty-icon {
+  font-size: 4rem;
+  display: block;
+  margin-bottom: 12px;
+  opacity: 0.8;
+}
+
+.empty-state p {
+  font-size: 1.1rem;
+  margin-bottom: 16px;
+}
+
+.empty-btn {
+  display: inline-block;
+  padding: 10px 20px;
+  background: white;
+  color: var(--accent);
+  border-radius: 100px;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+/* 暗黑模式 */
+.dark-mode {
+  --bg-primary: #1e293b;
+  --bg-secondary: #0f172a;
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+}
+
+/* 桌面端优化 */
+@media (min-width: 768px) {
+  .home-page {
+    padding: 0 20px 60px;
+  }
+  
   .hero-title {
-    font-size: 2rem;
+    font-size: 3rem;
   }
   
   .stats-row {
-    padding: 16px 24px;
-    gap: 16px;
+    padding: 20px 40px;
+    gap: 24px;
   }
   
   .stat-value {
-    font-size: 1.5rem;
+    font-size: 2rem;
   }
   
-  .toolbar-section {
-    flex-direction: column;
+  .diary-cards {
+    gap: 20px;
   }
   
-  .search-box {
-    min-width: 100%;
+  .diary-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px rgba(0,0,0,0.1);
   }
   
-  .filter-group {
-    width: 100%;
-    justify-content: space-between;
+  .gallery-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
   }
   
-  .card-body {
-    flex-direction: column;
+  .gallery-card:hover .gallery-overlay {
+    opacity: 1;
   }
   
-  .card-date {
-    flex-direction: row;
-    gap: 8px;
-    width: fit-content;
+  .timeline-item:hover .timeline-content {
+    transform: translateX(8px);
   }
 }
 </style>

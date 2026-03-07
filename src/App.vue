@@ -1,10 +1,12 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import BottomNav from './components/BottomNav.vue'
 
 const router = useRouter()
 const darkMode = ref(false)
 const scrolled = ref(false)
+const isMobile = ref(false)
 
 onMounted(() => {
   const savedDarkMode = localStorage.getItem('darkMode')
@@ -12,9 +14,13 @@ onMounted(() => {
     darkMode.value = savedDarkMode === 'true'
   }
   
-  // 监听滚动
   window.addEventListener('scroll', () => {
     scrolled.value = window.scrollY > 50
+  })
+  
+  isMobile.value = window.innerWidth < 768
+  window.addEventListener('resize', () => {
+    isMobile.value = window.innerWidth < 768
   })
 })
 
@@ -61,7 +67,7 @@ const toggleDarkMode = () => {
     </main>
     
     <!-- 页脚 -->
-    <footer class="footer">
+    <footer class="footer" v-if="!isMobile">
       <div class="footer-content">
         <div class="footer-brand">
           <span class="footer-icon">🦞</span>
@@ -77,6 +83,9 @@ const toggleDarkMode = () => {
         </div>
       </div>
     </footer>
+    
+    <!-- 移动端底部导航 -->
+    <BottomNav v-if="isMobile" />
   </div>
 </template>
 
