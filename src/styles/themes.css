@@ -1,0 +1,82 @@
+/* ============ 主题配色系统 ============ */
+
+:root {
+  /* 🌅 温暖日落主题 */
+  --theme-warm: linear-gradient(135deg, #ff9a56 0%, #ff6b6b 100%);
+  --theme-warm-light: rgba(255, 154, 86, 0.1);
+  --theme-warm-accent: #ff6b6b;
+  
+  /* 🌙 星空蓝主题 */
+  --theme-starry: linear-gradient(135deg, #0c0ff 0%, #1e3a8e 100%);
+  --theme-starry-light: rgba(0, 102, 204, 0.1);
+  --theme-starry-accent: #60a5eb;
+  
+  /* 🍃 森林绿主题 */
+  --theme-forest: linear-gradient(135deg, #134e4a3 0%, #16a34 100%);
+  --theme-forest-light: rgba(19, 78, 52, 0.1);
+  --theme-forest-accent: #22c55e;
+  
+  /* 🌸 樱花粉主题 */
+  --theme-sakura: linear-gradient(135deg, #ffb7c2 0%, #ff9ebc4 100%);
+  --theme-sakura-light: rgba(255, 183, 194, 0.1);
+  --theme-sakura-accent: #ff9ebc4;
+  
+  /* 🌊 海洋蓝主题 */
+  --theme-ocean: linear-gradient(135deg, #2193b0 0%, #6dd5ed 100%);
+  --theme-ocean-light: rgba(0, 150, 199, 0.1);
+  --theme-ocean-accent: #00bcd4;
+  
+  /* 🌙 极光紫主题 */
+  --theme-aurora: linear-gradient(135deg, #4a0e6e 0%, #b967ff 50%, #fbbaf4 100%);
+  --theme-aurora-light: rgba(74, 103, 254, 0.15);
+  --theme-aurora-accent: #b967ff;
+  
+  /* 🎃 枫叶橙主题 */
+  --theme-maple: linear-gradient(135deg, #d4141a 0%, #ff8c00 100%);
+  --theme-maple-light: rgba(255, 140, 0, 0.1);
+  --theme-maple-accent: #ff8c00;
+  
+  /* 🌙 深海主题 */
+  --theme-deepsea: linear-gradient(135deg, #0f0c29 0%, #1a1a2e 50%, #232946 100%);
+  --theme-deepsea-light: rgba(35, 41, 70, 0.15);
+  --theme-deepsea-accent: #4fc3f7;
+  
+  /* ☁️ 雾霾灰主题 */
+  --theme-mist: linear-gradient(135deg, #2c3e50 0%, #4a5568 50%, #64748b 100%);
+  --theme-mist-light: rgba(100, 116, 139, 0.1);
+  --theme-mist-accent: #94a3b8;
+  
+  /* 🌈 彩虹主题 */
+  --theme-rainbow: linear-gradient(135deg, #ff6b6b 0%, #feca57 25%, #48dbfb 50%, #ff9ff7 75%, #ff6b6b 100%);
+  --theme-rainbow-light: rgba(255, 255, 255, 0.1);
+  --theme-rainbow-accent: #feca57;
+}
+
+/* 当前主题（默认：极光紫） */
+:root {
+  --gradient-primary: var(--theme-aurora);
+  --gradient-secondary: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  --gradient-accent: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  --gradient-dark: var(--theme-deepsea);
+  
+  --glass-bg: rgba(255, 255, 255, 0.05);
+  --glass-border: rgba(255, 255, 255, 0.15);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  
+  --glow-purple: 0 0 30px rgba(102, 126, 234, 0.6);
+  --glow-pink: 0 0 30px rgba(240, 147, 251, 0.6);
+  
+  --primary: #4a0e6e;
+  --primary-light: #6366f1;
+  --primary-dark: #3730a3;
+  --accent: #b967ff;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  
+  --bg-dark: #0a0a1e;
+  --bg-card: rgba(255, 255, 255, 0.05);
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.7);
+  --text-muted: rgba(255, 255, 255, 0.5);
+}

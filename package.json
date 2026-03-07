@@ -1,7 +1,7 @@
 {
   "name": "lobster-diary",
   "private": true,
-  "version": "2.1.24",
+  "version": "2.1.26",
   "type": "module",
   "homepage": "https://royhua.github.io/lobster-diary",
   "scripts": {
@@ -12,8 +12,10 @@
     "release": "node scripts/bump-version.js && npm run build && npm run deploy"
   },
   "dependencies": {
+    "@element-plus/icons-vue": "^2.3.2",
     "@supabase/supabase-js": "^2.98.0",
     "chart.js": "^4.5.1",
+    "element-plus": "^2.13.4",
     "html2canvas": "^1.4.1",
     "vue": "^3.5.25",
     "vue-router": "^4.6.4"
