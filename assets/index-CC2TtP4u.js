@@ -84,4 +84,4 @@
 
 明日计划：`)}," 📅 明日计划 "),m("button",{class:"quick-btn",onClick:V[4]||(V[4]=P=>i.value+=`
 
-感恩的事：`)}," 🙏 感恩清单 ")]),p.value?(H(),j("div",{key:1,class:"template-overlay",onClick:V[7]||(V[7]=P=>p.value=!1)},[de(Th,{onSelect:L,onClose:V[5]||(V[5]=P=>p.value=!1),onClick:V[6]||(V[6]=cn(()=>{},["stop"]))})])):De("",!0)]))}},Gh=Bt(Wh,[["__scopeId","data-v-aad006ad"]]),Kh=Uu({history:Cu("/lobster-diary"),routes:[{path:"/",component:fd},{path:"/stats",component:gh},{path:"/write",component:Gh}]}),cl=Mc(tf);cl.use(Kh);cl.mount("#app");
+感恩的事：`)}," 🙏 感恩清单 ")]),p.value?(H(),j("div",{key:1,class:"template-overlay",onClick:V[7]||(V[7]=P=>p.value=!1)},[de(Th,{onSelect:L,onClose:V[5]||(V[5]=P=>p.value=!1),onClick:V[6]||(V[6]=cn(()=>{},["stop"]))})])):De("",!0)]))}},Gh=Bt(Wh,[["__scopeId","data-v-f7472b74"]]),Kh=Uu({history:Cu("/lobster-diary"),routes:[{path:"/",component:fd},{path:"/stats",component:gh},{path:"/write",component:Gh}]}),cl=Mc(tf);cl.use(Kh);cl.mount("#app");
