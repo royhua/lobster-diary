@@ -1,0 +1,19 @@
+{
+  "name": "龙虾日记",
+  "short_name": "龙虾日记",
+  "description": "记录每一天的精彩生活",
+  "start_url": "/lobster-diary/",
+  "display": "standalone",
+  "background_color": "#667eea",
+  "theme_color": "#667eea",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦞</text></svg>",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ],
+  "categories": ["lifestyle", "productivity"],
+  "lang": "zh-CN"
+}
