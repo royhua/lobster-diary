@@ -4,7 +4,7 @@
 
 <script setup>
 // 版本号由 scripts/bump-version.js 自动更新
-const version = '2.1.19'
+const version = '2.1.21'
 const buildTime = new Date().toISOString().split('T')[0]
 </script>
 
