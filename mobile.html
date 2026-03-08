@@ -7,32 +7,20 @@
     <meta name="theme-color" content="#667eea" />
     <meta name="description" content="记录每一天的精彩生活" />
     <link rel="manifest" href="/lobster-diary/manifest.json" />
-    <title>🦞 龙虾日记</title>
+    <title>🦞 龙虾日记 - 移动版</title>
     <script>
-      // 智能跳转：根据设备宽度选择版本
-      (function() {
-        var isMobile = window.innerWidth < 768;
-        var currentPath = window.location.pathname;
-        var isMobilePage = currentPath.includes('mobile.html');
-        var isPCPage = currentPath.includes('pc.html');
-        
-        // 如果在index.html，根据设备跳转
-        if (!isMobilePage && !isPCPage) {
-          if (isMobile) {
-            window.location.replace('/lobster-diary/mobile.html');
-          } else {
-            window.location.replace('/lobster-diary/pc.html');
-          }
-        }
-      })();
+      // 检测设备，PC端自动跳转
+      if (window.innerWidth >= 768) {
+        window.location.href = '/lobster-diary/pc.html'
+      }
     </script>
+    <script type="module" crossorigin src="/lobster-diary/assets/mobile-BZi0aRu0.js"></script>
+    <link rel="modulepreload" crossorigin href="/lobster-diary/assets/Write-BMsAAsBN.js">
+    <link rel="stylesheet" crossorigin href="/lobster-diary/assets/Write-CiMCzXOG.css">
+    <link rel="stylesheet" crossorigin href="/lobster-diary/assets/mobile-yQRNXUIa.css">
   </head>
   <body>
-    <div id="app">
-      <p style="text-align: center; padding-top: 100px; color: #999;">
-        正在加载...
-      </p>
-    </div>
+    <div id="app"></div>
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
