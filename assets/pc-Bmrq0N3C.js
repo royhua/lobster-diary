@@ -1,0 +1,1 @@
+import{aR as s,aV as o,aW as n,aX as r,aS as p,aT as c,aU as m,aY as u,aZ as i}from"./Write-Dy8q3KHx.js";const l=s({history:p("/lobster-diary/"),routes:[{path:"/",component:o},{path:"/stats",component:n},{path:"/write",component:r}]}),e=c(m);for(const[t,a]of Object.entries(u))e.component(t,a);e.use(i,{size:"default",zIndex:3e3});e.use(l);e.mount("#app");
